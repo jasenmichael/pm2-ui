@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const express = require('express')
 const api = express.Router()
 const ip = require('ip')
@@ -129,7 +131,11 @@ api.get('/status/:id', async (req, res) => {
   result.error ? res.status(404) : res.status(200)
   res.json(result)
 })
-// eslint-disable-next-line no-multiple-empty-lines
+
+api.get('/info', async (req, res) => {
+  const info = await getInfo()
+  res.json(info)
+})
 
 // functions
 async function formatItem(item) {
@@ -145,8 +151,7 @@ async function formatItem(item) {
   } else {
     url = undefined
   }
-  //   const status = await getStatus(item.pm_id)
-  //   console.log(status)
+
   const data = await {
     id: item.pm_id,
     name: item.name,
@@ -157,7 +162,7 @@ async function formatItem(item) {
     port: item.pm2_env.env.PORT,
     host: item.pm2_env.env.HOST,
     url,
-    lan_url: url ? url.replace('localhost', ip.address()) : url,
+    lan_url: (item.pm2_env.env.HOST === '0.0.0.0') ? url.replace('localhost', ip.address()) : undefined,
     pwd: item.pm2_env.env.PWD,
     args: item.pm2_env.args,
     user: item.pm2_env.env.USERNAME
@@ -197,6 +202,9 @@ async function getStatus(id) {
 async function getList() {
   const data = await shell(commands.list)
   const list = JSON.parse(data.output)
+  if (!list.length) {
+    return []
+  }
   if (data.exitcode === 0) {
     const newList = []
     for (let i = 0; i < list.length; i++) {
@@ -204,7 +212,10 @@ async function getList() {
       const formattedItem = await formatItem(item)
       newList.push(formattedItem)
       if (i === list.length - 1) {
-        return newList
+        // remove 
+        return newList.filter(function(item) {
+          return item.name !== 'pm2-ui'
+        })
       }
     }
   } else {
@@ -308,22 +319,33 @@ async function checkValidPort(port) {
   const isValid = port >= 0 && port < 65536
   // port 80 is not valid
   if (port == 80) {
-    console.log(`${port} is inValid ${isValid}`)
+    // console.log(`${port} is inValid ${isValid}`)
     return false
   }
   // if not port 80 or a configured port, check for valid port range
   return isValid
 }
 
+function getInfo() {
+  console.log(`
+  PORT: ${process.env.PORT}
+  HOST: ${process.env.HOST}
+  NODE_ENV: ${process.env.NODE_ENV}
+  URL: http://${process.env.HOST === 'localhost' ? 'localhost' : ip.address()}:${process.env.PORT}
+  PATH: ${__dirname.replace('/server/routes', '')}
+  `)
+  return {
+    host: process.env.HOST,
+    port: process.env.PORT,
+    path: `${__dirname.replace('/server/routes', '')}`,
+    url: `http://localhost:${process.env.PORT}`,
+    lanUrl: `http://${ip.address()}:${process.env.PORT}`,
+    env: process.env
+  }
+}
+
+module.exports = api
 // todo
 // start(name)
 // npmInstall(path)
 // build(path)
-
-// sample cmd route
-api.get('/hello', async (req, res) => {
-  const data = await shell('echo hello')
-  console.log(data) // eslint-disable-line
-  res.json(data)
-})
-module.exports = api
