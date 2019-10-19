@@ -5,7 +5,7 @@ STARTING_DIR=$PWD
 
 # check if dir already exist, go in
 if [ -d "pm2-ui" ]; then
-    ecoh "exist..."
+    echo "exist..."
     cd pm2-ui
 fi
 
