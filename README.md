@@ -5,7 +5,7 @@
 ## Install Setup
 
 ``` bash
-wget -Oq - https://raw.githubusercontent.com/jasenmichael/pm2-ui/master/bin/install.sh | bash
+wget -q -O - https://raw.githubusercontent.com/jasenmichael/pm2-ui/master/bin/install.sh | bash
 # or
 curl -s https://raw.githubusercontent.com/jasenmichael/pm2-ui/master/bin/install.sh | bash
 # or
