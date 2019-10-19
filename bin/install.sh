@@ -17,15 +17,15 @@ else
 fi
 # todo: check and or install pm2
 echo "RUNNING: npm install"
-npm install
+npm install >/dev/null 2>&1
 echo "RUNNING: npm run build"
-npm run build
+npm run build >/dev/null 2>&1
 sleep 2
 echo "RUNNING: PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start"
 pm2 delete pm2-ui >/dev/null 2>&1
 PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start >/dev/null 2>&1
+pm2 save >/dev/null 2>&1
 # todo: pm2 startup
-# todo: pm2 save
 # reinstal and update pm2-ui
 
 cd $STARTING_DIR
