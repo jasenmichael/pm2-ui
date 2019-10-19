@@ -199,7 +199,7 @@ async function getStatus(id) {
   }
 }
 
-async function getList() {
+const getList = async function () {
   const data = await shell(commands.list)
   const list = JSON.parse(data.output)
   if (!list.length) {
@@ -213,7 +213,8 @@ async function getList() {
       newList.push(formattedItem)
       if (i === list.length - 1) {
         // remove 
-        return newList.filter(function(item) {
+        return newList.filter(function (item) {
+          console.log(newList)
           return item.name !== 'pm2-ui'
         })
       }
@@ -344,7 +345,10 @@ function getInfo() {
   }
 }
 
-module.exports = api
+module.exports = {
+  api,
+  getList
+}
 // todo
 // start(name)
 // npmInstall(path)

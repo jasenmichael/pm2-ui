@@ -35,7 +35,7 @@ async function start () {
   app.use(cors())
 
   // Express routes
-  app.use('/api', api)
+  app.use('/api', api.api)
 
   // Listen the server
   app.listen(port, host)
