@@ -11,8 +11,7 @@ fi
 
 # check if in project dir
 if [ -d "server" ] && [ -d ".nuxt" ]; then
-    git fetch --all
-    # git fetch --all >/dev/null 2>&1
+    git fetch --all >/dev/null 2>&1
 else
     git clone git@github.com:jasenmichael/pm2-ui.git pm2-ui
     cd $INSTALL_DIR
