@@ -2,14 +2,16 @@
 
 > pm2 ui and api - built with nuxt
 
-## Build Setup
+## Install Setup
 
 ``` bash
+wget -O - https://raw.githubusercontent.com/jasenmichael/pm2-ui/master/bin/install.sh | bash
+# or
+curl -s https://raw.githubusercontent.com/jasenmichael/pm2-ui/master/bin/install.sh | bash
+# or
 git clone https://github.com/jasenmichael/pm2-ui.git pm2-ui
 cd pm2-ui
-npm run install
-npm run build
-npm run start
+./bin/install.sh
 ```
 
 ## Routes
