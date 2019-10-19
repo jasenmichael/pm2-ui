@@ -5,18 +5,38 @@
 ## Build Setup
 
 ``` bash
-# install dependencies
-$ npm run install
-
-# serve with hot reload at localhost:3000
-$ npm run dev
-
-# build for production and launch server
-$ npm run build
-$ npm run start
-
-# generate static project
-$ npm run generate
+git clone https://github.com/jasenmichael/pm2-ui.git pm2-ui
+cd pm2-ui
+npm run install
+npm run build
+npm run start
 ```
 
-For detailed explanation on how things work, check out [Nuxt.js docs](https://nuxtjs.org).
+## Routes
+
+gui interface
+/
+
+list all routes
+/api
+
+
+list all pm2 processes
+/api/list
+
+
+list one process
+/api/list/:id|name
+
+add process
+/api/add/:name
+
+delete process
+/api/delete/:id|name
+
+restart process
+/api/restart
+
+## TODO:
+
+
