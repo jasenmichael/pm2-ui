@@ -22,7 +22,7 @@ echo "RUNNING: npm run build"
 npm run build
 sleep 2
 echo "RUNNING: PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start"
-pm2 delete pm2-ui
+pm2 delete pm2-ui >/dev/null 2>&1
 PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start >/dev/null 2>&1
 # todo: pm2 startup
 # todo: pm2 save
