@@ -214,7 +214,7 @@ const getList = async function () {
       if (i === list.length - 1) {
         // remove 
         return newList.filter(function (item) {
-          console.log(newList)
+          // console.log(newList)
           return item.name !== 'pm2-ui'
         })
       }
