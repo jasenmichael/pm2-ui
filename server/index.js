@@ -38,8 +38,8 @@ async function start () {
   app.use('/api', api.api)
 
   // Listen the server
-  app.listen(port, host)
   const ipAdd = (host === '0.0.0.0') ? ip.address() : 'localhost'
+  app.listen(port, ipAdd)
   consola.ready({
     message: `Server Started`,
     badge: true
