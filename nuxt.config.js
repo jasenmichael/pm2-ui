@@ -2,7 +2,8 @@
 module.exports = {
   mode: 'universal',
   server: {
-    port: process.env.PORT || 8081
+    port: process.env.PORT || 8081,
+    host: process.env.HOST || 'localhost'
   },
   /*
   ** Headers of the page
@@ -37,7 +38,7 @@ module.exports = {
   */
   buildModules: [
     // Doc: https://github.com/nuxt-community/eslint-module
-    '@nuxtjs/eslint-module'
+    // '@nuxtjs/eslint-module'
   ],
   /*
   ** Nuxt.js modules
@@ -69,6 +70,10 @@ module.exports = {
   ** See https://axios.nuxtjs.org/options
   */
   axios: {
+    // baseURL: `http://localhost:8085`
+    // baseURL: `http://${process.env.HOST}:${process.env.PORT}`
+    // baseURL: `http://${this.server.host}:${this.server.port}`
+    baseURL: '/'
   },
   /*
   ** Build configuration
