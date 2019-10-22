@@ -105,29 +105,37 @@
     <!--  -->
     <!--  -->
 
-    <b-row>
-      <b-col>
-        <b-button title="Add New" variant="link" class="action-btn">
-          <fa :icon="action.add.icon" :color="action.add.color" class="add-icon" />
+    <div v-if="list.length">
+      <b-row>
+        <b-col>
+          <b-button title="Add New" variant="link" class="action-btn">
+            <fa :icon="action.add.icon" :color="action.add.color" class="add-icon" />
+          </b-button>
+        </b-col>
+        <b-col cols="auto" class="save-reset">
+          <b-button title="Save" variant="link" class="action-btn">
+            <fa :icon="action.save.icon" class="icon" />&nbsp;save current processes
+          </b-button>
+        </b-col>
+        <b-col cols="auto" class="save-reset">
+          <b-button title="Reset" variant="link" class="action-btn">
+            <fa :icon="action.reset.icon" class="icon" />&nbsp;reset changes
+          </b-button>
+        </b-col>
+      </b-row>
+      <br />
+      <hr />
+      <br />
+      <client-only placeholder="loading...">
+        <b-button @click="logger = []">
+          reset logger
+          <fa :icon="action.reset.icon" class="icon" />
         </b-button>
-      </b-col>
-      <b-col cols="auto" class="save-reset">
-        <b-button title="Save" variant="link" class="action-btn">
-          <fa :icon="action.save.icon" class="icon" />&nbsp;save current processes
-        </b-button>
-      </b-col>
-      <b-col cols="auto" class="save-reset">
-        <b-button title="Reset" variant="link" class="action-btn">
-          <fa :icon="action.reset.icon" class="icon" />&nbsp;reset changes
-        </b-button>
-      </b-col>
-    </b-row>
-
-    <client-only placeholder="loading...">
-      <div v-if="testResult.length || list.length !== 0">
-        <vue-json-pretty :data="{restart: testResult, list}" />
-      </div>
-    </client-only>
+        <div v-if="logger.length || list.length !== 0">
+          <vue-json-pretty :data="{logger, list}" />
+        </div>
+      </client-only>
+    </div>
   </div>
 </template>
 
@@ -138,7 +146,7 @@ export default {
   },
   data: () => {
     return {
-      testResult: [],
+      logger: [],
       list: [],
       selected: {},
       action: {
@@ -196,8 +204,8 @@ export default {
         console.log('status changed')
         this.list[i] = await this.addStatusIcons([item])[0]
         this.list[i].statusIcon.isLoading = false
+        this.logger.unshift(`STATUS_CHANGED ${item.name} ${item.status}`)
       }
-      this.testResult.push(item)
     },
     // eslint-disable-next-line
     async restart(name) {
