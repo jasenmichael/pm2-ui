@@ -156,9 +156,8 @@ async function formatItem( item ) {
     id: item.pm_id,
     name: item.name,
     pid: item.pid,
-    // running: (item.pid > 0 && item.monit.memory > 0),
     status: await getStatus( item.pm_id ),
-    details: await getItemDetailedInfo( item.pm_id ),
+    // details: await getItemDetailedInfo( item.pm_id ),
     exec_interpreter: item.pm2_env.exec_interpreter || '?',
     port: item.pm2_env.env.PORT,
     host: item.pm2_env.env.HOST,
@@ -167,7 +166,7 @@ async function formatItem( item ) {
     pwd: item.pm2_env.env.PWD,
     args: item.pm2_env.args,
     user: item.pm2_env.env.USERNAME,
-    env: item.pm2_env.env
+    env: await getItemEnvInfo( item.pm_id ) // item.pm2_env.env
   }
   return data
 }
@@ -201,12 +200,14 @@ async function getStatus( id ) {
 }
 async function getItemDetailedInfo( id ) {
   const data = await shell( `pm2 describe ${id}` )
-  const delimiter = '\n'
-
   if ( data.exitcode === 0 ) {
     if ( data.output !== `[PM2][WARN] ${id} doesn't exist` ) {
+      let splitString = " Actions available "
+      // if ( data.output.includes( 'status            │ stopped' || 'status            │ errored' ) ) {
+      //   splitString = 'Divergent env variables from local env'
+      // }
       const commandOutput = data.output
-        .split( " Actions available " )[ 0 ]
+        .split( splitString )[ 0 ]
         .split( '\n' )
         .slice( 2, -2 )
         .map( item => {
@@ -215,14 +216,20 @@ async function getItemDetailedInfo( id ) {
             .slice( 1, -1 )
             .trim()
             .split( "│" )
+          // console.log( 'item', item )
+          // console.log( 'newItem', newItem, '\n-----' )
+          const key = newItem[ 0 ].trim().replace( / /g, '_' ).replace( '_&_', '_' )
+          const value = newItem[ 1 ]
+          console.log( 'key-value--', key + '--' + value )
           const result = {
-            [ newItem[ 0 ].trim() ]: newItem[ 1 ].trim()
+            [ key ]: value
           }
-          console.log( result )
           return result
         } )
+      console.log( '----------------\n\n\n' )
       const info = Object.assign( {}, ...commandOutput )
-      console.log( 'info----', info )
+      // console.log( 'info----', info )
+      // console.log( data.output )
       return info
 
     } else {
@@ -230,6 +237,34 @@ async function getItemDetailedInfo( id ) {
     }
   }
 }
+async function getItemEnvInfo( id ) {
+  const data = await shell( `pm2 env ${id}` )
+  if ( data.exitcode === 0 ) {
+    if ( data.output !== `[PM2][ERROR] Modules with id ${id} not found` ) {
+      const commandOutput = data.output
+        .split( '\n' )
+        .map( item => {
+          const newItem =
+            item
+            .split( ":" )
+          const result = {
+            [ newItem[ 0 ].trim() ]: newItem[ 1 ].trim()
+          }
+          // console.log( result )
+          return result
+        } )
+      const env = Object.assign( {}, ...commandOutput )
+      // console.log( 'getItemEnvInfo-env--', env )
+      return env
+
+    } else {
+      return `${id} doesn't exist`
+    }
+  }
+
+  // 
+}
+
 const getList = async function () {
   const data = await shell( commands.list )
   const list = JSON.parse( data.output )
