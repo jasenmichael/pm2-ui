@@ -157,7 +157,7 @@ async function formatItem( item ) {
     name: item.name,
     pid: item.pid,
     status: await getStatus( item.pm_id ),
-    // details: await getItemDetailedInfo( item.pm_id ),
+    details: await getItemDetailedInfo( item.pm_id ),
     exec_interpreter: item.pm2_env.exec_interpreter || '?',
     port: item.pm2_env.env.PORT,
     host: item.pm2_env.env.HOST,
@@ -220,16 +220,13 @@ async function getItemDetailedInfo( id ) {
           // console.log( 'newItem', newItem, '\n-----' )
           const key = newItem[ 0 ].trim().replace( / /g, '_' ).replace( '_&_', '_' )
           const value = newItem[ 1 ]
-          console.log( 'key-value--', key + '--' + value )
+          // console.log( 'key-value--', key + '--' + value )
           const result = {
             [ key ]: value
           }
           return result
         } )
-      console.log( '----------------\n\n\n' )
       const info = Object.assign( {}, ...commandOutput )
-      // console.log( 'info----', info )
-      // console.log( data.output )
       return info
 
     } else {
@@ -314,12 +311,12 @@ async function add( body ) {
   const portOpen = await checkPortOpen( body.port )
   const portConfigured = await checkPortConfigured( body.port )
   // check port configured, if all ready running on that port- do not start
-  if ( !portConfigured && !portOpen ) {
+  if ( body.port && ( !portConfigured && !portOpen ) ) {
     error.push( `${body.port} port in use by another service` )
   }
 
   const validPort = await checkValidPort( body.port )
-  if ( !validPort ) {
+  if ( body.port && !validPort ) {
     error.push( `${body.port} invalid port` )
   }
 
@@ -339,16 +336,17 @@ async function add( body ) {
     }
   }
   const name = body.name
-  const port = body.port
+  const port = body.port ? `PORT=${body.port}` : ''
+  const lan = body.lan
+  const host = body.host ? `HOST=${body.host}` : `HOST=${lan ? '0.0.0.0' : 'localhost'}`
   const path = body.path
   const startCommand = body.startCommand
     .replace( 'npm run start', 'npm -- start' )
     .replace( 'npm', 'npm --' )
-  const lan = body.lan
   const start = !canStart ? ` && ${commands.stop} ${name}` : ''
-  const build = ( startCommand !== 'npm -- run dev' ) ? ` PORT=${port} HOST=${lan ? '0.0.0.0' : 'localhost'} ${body.buildCommand} &&` : ''
+  const build = ( startCommand !== 'npm -- run dev' ) ? ` ${port} ${host} ${body.buildCommand} &&` : ''
 
-  const command = `cd ${path} &&${build} PORT=${port} HOST=${lan ? '0.0.0.0' : 'localhost'} pm2 start -n ${name} ${startCommand} ${start}`.trim()
+  const command = `cd ${path} &&${build} ${port} ${host} pm2 start -n ${name} ${startCommand} ${start}`.trim()
   const data = await shell( command )
   console.log( command ) // eslint-disable-line
   const result = await listItemById( name )

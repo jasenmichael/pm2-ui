@@ -211,6 +211,7 @@ export default {
     async restart(name) {
       const item = await this.$axios.$get(`/api/restart/${name}`)
       this.changeStatusIcon(item)
+      this.logger.unshift(`RESTARTED ${name}`)
     },
     async start(name) {
       const item = await this.$axios.$get(`/api/start/${name}`)
