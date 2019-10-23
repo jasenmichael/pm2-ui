@@ -1,6 +1,12 @@
 <template>
   <!-- eslint-disable -->
   <div>
+    <!-- retore section -->
+    <div v-show="restoring">
+      <div class="restoring">
+        <p v-for="(item, index) in restored" :key="index">{{item}}</p>
+      </div>
+    </div>
     <div v-for="item in list" :key="item.id">
       <b-card :style="'max-width: 100vw;'" class="mb-2 item-card" no-body>
         <b-row class="item" align-v="center" align-h="end">
@@ -22,13 +28,13 @@
           <b-col cols="auto">
             <b-list-group-item class="status-box">
               <b-spinner
-                v-show="item.statusIcon.isLoading"
+                v-if="(item.status === 'restarting') || (item.status === 'starting') || (item.status === 'stopping')"
                 class="icon-status"
                 type="grow"
                 label="Spinning"
               />
               <fa
-                v-show="!item.statusIcon.isLoading"
+                v-else
                 :icon="item.statusIcon.icon"
                 :color="item.statusIcon.color"
                 class="icon-status"
@@ -77,17 +83,16 @@
             >
               <fa :color="action.remove.color" :icon="action.remove.icon" class="action-icon" />
             </b-button>
-            <b-button title="Settings" variant="link" class="action-btn">
+            <b-button @click="addEditItem(item)" title="Settings" variant="link" class="action-btn">
               <fa :color="action.settings.color" :icon="action.settings.icon" class="action-icon" />
             </b-button>
           </b-col>
         </b-row>
       </b-card>
+      <addEditForm v-show="selected.id === item.id && editing" v-bind:item="item" />
     </div>
 
-    <!-- move me inside for loop, switch selected.id to item.id -->
     <!-- DELETE/REMOVE MODAL -->
-    <!-- <b-button v-b-modal.remove>Launch demo modal</b-button> -->
     <b-modal ref="remove-modal" hide-footer :title="`Delete id:${selected.id}`">
       <div class="d-block text-center">
         <h5>ARE YOU SURE??</h5>
@@ -102,37 +107,43 @@
         @click="hideRemoveModal(selected.id)"
       >Cancel</b-button>
     </b-modal>
-    <!--  -->
-    <!--  -->
 
-    <div v-if="list.length">
-      <b-row>
+    <div>
+      <br />
+      <b-row v-if="!restoring && list.length">
         <b-col>
           <b-button title="Add New" variant="link" class="action-btn">
-            <fa :icon="action.add.icon" :color="action.add.color" class="add-icon" />
+            <fa
+              @click="addEditItem('add')"
+              :icon="action.add.icon"
+              :color="action.add.color"
+              class="add-icon"
+            />
           </b-button>
         </b-col>
         <b-col cols="auto" class="save-reset">
-          <b-button title="Save" variant="link" class="action-btn">
-            <fa :icon="action.save.icon" class="icon" />&nbsp;save current processes
+          <b-button @click="save()" title="Save" variant="link" class="action-btn">
+            <fa :icon="action.save.icon" class="icon" />&nbsp;Save Processes
           </b-button>
         </b-col>
         <b-col cols="auto" class="save-reset">
-          <b-button title="Reset" variant="link" class="action-btn">
-            <fa :icon="action.reset.icon" class="icon" />&nbsp;reset changes
+          <b-button @click="restore()" title="Reset" variant="link" class="action-btn">
+            <fa :icon="action.restore.icon" class="icon" />&nbsp;Restore Processes
           </b-button>
         </b-col>
       </b-row>
       <br />
+      <br />
       <hr />
       <br />
+      <addEditForm v-if="adding" />
       <client-only placeholder="loading...">
-        <b-button @click="logger = []">
+        <b-button v-if="isMounted" @click="logger = []">
           reset logger
-          <fa :icon="action.reset.icon" class="icon" />
+          <fa :icon="action.restore.icon" class="icon" />
         </b-button>
         <div v-if="logger.length || list.length !== 0">
-          <vue-json-pretty :data="{logger, list}" />
+          <vue-json-pretty :data="{logger, editing, selected, restored, adding, list}" />
         </div>
       </client-only>
     </div>
@@ -140,15 +151,23 @@
 </template>
 
 <script>
+import addEditForm from '@/components/add.vue'
 export default {
   components: {
-    VueJsonPretty: () => import('vue-json-pretty')
+    VueJsonPretty: () => import('vue-json-pretty'),
+    addEditForm
   },
   data: () => {
     return {
+      isMounted: false,
       logger: [],
       list: [],
+      isLoading: false,
       selected: {},
+      adding: false,
+      editing: false,
+      restoring: false,
+      restored: [],
       action: {
         restart: { icon: ['fas', 'retweet'], color: '#2b5ca5' },
         start: { icon: ['fas', 'play-circle'], color: 'green' },
@@ -157,7 +176,7 @@ export default {
         remove: { icon: ['fas', 'trash'], color: 'darkred' },
         settings: { icon: ['fas', 'cog'], color: '#5f6972' },
         save: { icon: ['fas', 'save'], color: '' },
-        reset: { icon: ['fas', 'undo'], color: '' },
+        restore: { icon: ['fas', 'undo'], color: '' },
         drop: { icon: ['fas', 'chevron-down'], color: 'darkgrey' }
       },
       status: {
@@ -171,86 +190,144 @@ export default {
       }
     }
   },
-  // computed: {},
-  // eslint-disable-next-line
-  mounted() {
-    this.getList()
+  async mounted() {
+    await this.getList()
+    this.isMounted = true
   },
   methods: {
-    // eslint-disable-next-line
     async getList() {
       const list = await this.$axios.$get(`/api/list`)
-      this.list = await this.addStatusIcons(list)
+      const tempList = await this.addStatusIcons(list)
+      this.list = []
+      tempList.forEach(item => {
+        this.list.push(item)
+      })
     },
-    // eslint-disable-next-line
     addStatusIcons(list) {
-      // eslint-disable-next-line
       let newList = []
       for (let i = 0; i < list.length; i++) {
         const item = list[i]
         item.statusIcon = this.status[item.status]
-        item.statusIcon.isLoading = false
+        // item.statusIcon.isLoading = false
         item.execIcon = this.interpreter[item.exec_interpreter]
         newList.push(item)
-        // this.list.push(item)
       }
       return newList
     },
-    // eslint-disable-next-line
     async changeStatusIcon(item) {
       const i = await this.list.findIndex(el => el.name == item.name)
-      // this.list[i].statusIcon.isLoading = true
       if (this.list[i].status !== item.status) {
-        console.log('status changed')
+        // console.log('status changed')
         this.list[i] = await this.addStatusIcons([item])[0]
-        this.list[i].statusIcon.isLoading = false
-        this.logger.unshift(`STATUS_CHANGED ${item.name} ${item.status}`)
+        // this.list[i].statusIcon.isLoading = false
+        // this.logger.unshift(`STATUS_CHANGED ${item.name} ${item.status}`)
       }
     },
-    // eslint-disable-next-line
-    async restart(name) {
-      const item = await this.$axios.$get(`/api/restart/${name}`)
-      this.changeStatusIcon(item)
-      this.logger.unshift(`RESTARTED ${name}`)
-    },
-    async start(name) {
-      const item = await this.$axios.$get(`/api/start/${name}`)
-      this.changeStatusIcon(item)
-    },
-    async stop(name) {
-      const item = await this.$axios.$get(`/api/stop/${name}`)
-      this.changeStatusIcon(item)
+    async addEditItem(item) {
+      if (item === 'add') {
+        // this.logger = ['add item clicked, no id passed']
+        this.adding = this.adding ? !this.adding : true
+        // this.selected = {}
+      } else {
+        // this.logger.unshift(`add item clicked, ${item.id} passed`)
+        if (this.editing === this.selected.id && this.editing === item.id) {
+          this.editing = false
+        } else {
+          await this.setSelected(item.id)
+          this.editing = item.id
+        }
+      }
     },
 
+    // actions
+    async restart(name) {
+      const index = await this.indexByNameOrId(name)
+      this.list[index].status = 'restarting'
+      await this.$axios.$get(`/api/restart/${name}`)
+      this.getList()
+    },
+    async start(name) {
+      const index = await this.indexByNameOrId(name)
+      this.list[index].status = 'starting'
+      await this.$axios.$get(`/api/start/${name}`)
+      this.getList()
+    },
+    async stop(name) {
+      const index = await this.indexByNameOrId(name)
+      this.list[index].status = 'stopping'
+      await this.$axios.$get(`/api/stop/${name}`)
+      this.getList()
+    },
     async remove(id) {
       console.log('deleteing', id)
       const result = await this.$axios.$get(`/api/delete/${id}`)
       if (result.deleted) {
-        await this.$axios.$get('/api/list/')
-        this.getList()
         this.hideRemoveModal(id)
+        this.getList()
       }
-      // this.$refs['remove-modal'].toggle('#toggle-btn')
+    },
+    async save() {
+      const item = await this.$axios.$get(`/api/save`)
+      // this.logger.unshift(item)
+    },
+    async restore() {
+      this.restoring = true
+      this.restored = ['Restoring Processes Started..']
+      this.list = []
+      const item = await this.$axios.$get(`/api/restore`)
+      const itemOutLength = item.output.length
+      while (this.restored[0] === 'Restoring Processes Started..') {
+        this.restored[0] = 'Restoring Processes Started.'
+        setTimeout(() => {
+          this.restored[0] = 'Restoring Processes Started..'
+        }, 80)
+      }
+      item.output.forEach((item, index) => {
+        setTimeout(() => {
+          if (index !== 0) {
+            this.restored[0] = this.restored[0] + '.'
+            this.restored.push(item)
+          }
+          if (this.restored.length === itemOutLength) {
+            this.restored.push('Restoring Processes Completed.')
+          }
+        }, 300)
+      })
+      // this.logger.unshift(item)
+      await this.getList()
+      setTimeout(() => {
+        this.restoring = false
+      }, 800)
     },
 
-    showRemoveModal(id) {
-      this.$refs['remove-modal'].show(`#${id}-remove-btn"`)
+    // helpers
+    resetSelected() {
+      this.selected = {}
+    },
+    setSelected(id) {
       this.selected = this.list.filter(item => {
         return item.id === id
       })[0]
+    },
+    showRemoveModal(id) {
+      this.$refs['remove-modal'].show(`#${id}-remove-btn"`)
+      this.setSelected(id)
       console.log('---', this.selected.name)
     },
     hideRemoveModal(id) {
       this.$refs['remove-modal'].hide(`#${id}-remove-btn"`)
+      this.resetSelected()
+    },
+    indexByNameOrId(nameOrId) {
+      return this.list.findIndex(el => {
+        return nameOrId === el.name || nameOrId === el.id
+      })
     }
   }
 }
 </script>
 
 <style scoped>
-.yo {
-  color: #2b5ca5;
-}
 .item-card {
   border-style: solid;
   border-color: darkgrey;
@@ -329,5 +406,20 @@ export default {
   border-radius: 6px;
   padding: 6px;
   margin-right: 18px;
+}
+.restoring {
+  border-radius: 4px;
+  background-color: rgb(78, 78, 78);
+  padding: 0.8rem;
+  min-height: 200px;
+  margin-bottom: 2rem;
+}
+.restoring > p {
+  /* margin: 0, 5, 0, 0; */
+  /* margin-left: 2rem; */
+  margin: 0px;
+}
+.restoring > p {
+  color: white;
 }
 </style>
