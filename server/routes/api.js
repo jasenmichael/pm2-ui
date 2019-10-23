@@ -22,6 +22,7 @@ const commands = {
   stop: 'pm2 stop', // needs id|name|all
   restart: 'pm2 restart', // needs id|name|all
   save: 'pm2 save -u $USER',
+  restore: 'pm2 resurrect -u $USER',
   delete: 'pm2 delete' // needs id|name|all
 }
 
@@ -89,9 +90,7 @@ api.get( '/restart/:name', async ( req, res ) => {
 api.get( '/delete/:name', async ( req, res ) => {
   const name = req.params.name
   const command = `${commands.delete} ${name}`
-  //   console.log(command) // eslint-disable-line
   const data = await shell( command )
-  // console.log(data) // eslint-disable-line
   if ( data.error ) {
     res.status( 404 )
     res.json( {
@@ -120,6 +119,12 @@ api.get( '/save', async ( req, res ) => {
   const data = await save()
   res.json( data )
 } )
+
+api.get( '/restore', async ( req, res ) => {
+  const data = await restore()
+  res.json( data )
+} )
+
 api.get( '/status/:id', async ( req, res ) => {
   const id = req.params.id
   const data = await getStatus( id )
@@ -173,9 +178,10 @@ async function formatItem( item ) {
 
 async function save() {
   const data = await shell( commands.save )
-  console.log( data ) // eslint-disable-line
+  console.log( data.output ) // eslint-disable-line
   if ( data.exitcode === 0 ) {
     data.saved = true
+    // console.log( 'processes saved ' + data.saved )
     return data
   } else {
     return {
@@ -184,6 +190,35 @@ async function save() {
   }
 }
 
+async function restore() {
+  const data = await shell( commands.restore )
+  // console.log( data.output ) // eslint-disable-line
+  if ( data.exitcode === 0 ) {
+    data.restore = true
+    const output = data.output
+      .replace( / │ /g, ' | ' )
+      .replace( /│ /g, '' )
+      .replace( / │/g, '' )
+      .trim()
+      .replace( /├/g, '' )
+      .replace( /─/g, '' )
+      .replace( /┼/g, '' )
+      .replace( /┤/g, '' )
+      // .replace( /│ /g, '' )
+      .split( '\n' )
+      .slice( 3, -1 )
+    // console.log( 'processes restored ' + data.restore )
+    output.splice( 1, 1 )
+    return {
+      restored: data.exitcode === 0,
+      output
+    }
+  } else {
+    return {
+      error: data.output
+    }
+  }
+}
 async function getStatus( id ) {
   const data = await shell( `pm2 describe ${id} | sed -n 3p` )
   //   console.log(data) // eslint-disable-line
@@ -219,7 +254,8 @@ async function getItemDetailedInfo( id ) {
           // console.log( 'item', item )
           // console.log( 'newItem', newItem, '\n-----' )
           const key = newItem[ 0 ].trim().replace( / /g, '_' ).replace( '_&_', '_' )
-          const value = newItem[ 1 ]
+
+          const value = newItem[ 1 ] ? newItem[ 1 ].trim() : undefined
           // console.log( 'key-value--', key + '--' + value )
           const result = {
             [ key ]: value
@@ -328,11 +364,9 @@ async function add( body ) {
   if ( portConfigured === true ) {
     canStart = false
   }
-  //   console.log(error)
   if ( error.length ) {
     return {
       error: error.length === 1 ? error[ 0 ] : error
-      // error
     }
   }
   const name = body.name
@@ -342,16 +376,25 @@ async function add( body ) {
   const path = body.path
   const startCommand = body.startCommand
     .replace( 'npm run start', 'npm -- start' )
-    .replace( 'npm', 'npm --' )
-  const start = !canStart ? ` && ${commands.stop} ${name}` : ''
-  const build = ( startCommand !== 'npm -- run dev' ) ? ` ${port} ${host} ${body.buildCommand} &&` : ''
+    .replace( 'npm start', 'npm -- start' )
+    .replace( 'npm run dev', 'npm -- run dev' )
+  const stop = !canStart ? `&& ${commands.stop} ${name}` : ''
+  const build = ( startCommand === 'npm -- run start' ) ? ` ${port} ${host} ${body.buildCommand} &&` : ''
 
-  const command = `cd ${path} &&${build} ${port} ${host} pm2 start -n ${name} ${startCommand} ${start}`.trim()
+  const command = `cd ${path} &&${build} ${port} ${host} pm2 start -n ${name} ${startCommand} ${stop}`.trim()
+  const cmdArr = command.split( ' && ' )
+  const cmd = {
+    cmdArr,
+    command
+  }
   const data = await shell( command )
   console.log( command ) // eslint-disable-line
   const result = await listItemById( name )
   if ( data.exitcode === 0 ) {
-    return result
+    return {
+      ...cmd,
+      ...result
+    }
   }
 }
 
