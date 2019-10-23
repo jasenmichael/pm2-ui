@@ -9,7 +9,7 @@ if [ -d "pm2-ui" ]; then
     cd pm2-ui
 fi
 
-# check if in project dir
+check if in project dir
 if [ -d "server" ] && [ -d ".nuxt" ]; then
     git fetch --all >/dev/null 2>&1
 else
@@ -26,9 +26,16 @@ echo "RUNNING: PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start"
 pm2 delete pm2-ui >/dev/null 2>&1
 PORT=8085 HOST=0.0.0.0 pm2 start -n pm2-ui npm -- start >/dev/null 2>&1
 pm2 save >/dev/null 2>&1
-# todo: pm2 startup
-# reinstal and update pm2-ui
+todo: pm2 startup
+reinstal and update pm2-ui
 
 cd $STARTING_DIR
 echo "Installation complete"
-echo "Avaialble at http://localhost:8085"
+if ! [ -x "$(command -v python)" ]; then
+    # echo 'Error: git is not installed.' >&2
+    # exit 1
+    echo "PM2-UI Avaialble at http://localhost:8085"
+else
+    echo "Opening PM2-UI at http://localhost:8085"
+    python -mwebbrowser http://localhost:8085
+fi
