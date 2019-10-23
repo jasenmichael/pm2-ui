@@ -27,9 +27,10 @@ pm2 save >/dev/null 2>&1
 
 cd $STARTING_DIR
 echo "Installation complete"
+echo "Starting PM2-UI"
+sleep 4
 if ! [ -x "$(command -v python)" ]; then
-    # echo 'Error: git is not installed.' >&2
-    # exit 1
+    
     echo "PM2-UI Avaialble at http://localhost:8085"
 else
     echo "Opening PM2-UI at http://localhost:8085"
