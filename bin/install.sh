@@ -9,7 +9,6 @@ if [ -d "pm2-ui" ]; then
     cd pm2-ui
 fi
 
-check if in project dir
 if [ -d "server" ] && [ -d ".nuxt" ]; then
     git fetch --all >/dev/null 2>&1
 else
