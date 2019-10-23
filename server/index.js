@@ -38,7 +38,7 @@ async function start () {
   app.use('/api', api.api)
 
   // Listen the server
-  const ipAdd = (host === '0.0.0.0') ? ip.address() : 'localhost'
+  const ipAdd = (host === '0.0.0.0') ? host : 'localhost'
   app.listen(port, ipAdd)
   consola.ready({
     message: `Server Started`,
@@ -47,7 +47,7 @@ async function start () {
 
   consola.success(`Avaiable locally at  http://localhost:${port}`)
   if (host === '0.0.0.0') {
-    consola.success(`Avaiable over lan at http://${ipAdd}:${port}`)
+    consola.success(`Avaiable over lan at http://${ip.address()}:${port}`)
   }
 
   app.use(nuxt.render)
