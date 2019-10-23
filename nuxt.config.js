@@ -2,7 +2,7 @@
 module.exports = {
   mode: 'universal',
   server: {
-    port: process.env.PORT || 8081,
+    port: process.env.PORT || 8085,
     host: process.env.HOST || 'localhost'
   },
   /*
